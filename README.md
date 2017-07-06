@@ -4,8 +4,8 @@ uses icmp data size to transport data
 ## Idea
 Came from [jobertabma](https://gist.github.com/jobertabma/e9a383a8ad96baa189b65cdc8d74a845)'s gist about passing the numeric value of ASCII characters through the ICMP data size value. The process is separated in 3:
 1. Sniff for ICMP packets of type *echo* (sniff.sh)
-2. Send information to server (pingcmd.pl)
-3. Stop and decode the data sizes (decode.sh)
+2. Send information to server (pingcmd.pl), char-by-char, via the size.
+3. Stop and decode the data sizes (decode.sh). Data size 8 is treated a newline.
 
 ## Example
 1. **Server-side:**
