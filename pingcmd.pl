@@ -54,7 +54,7 @@ sub send_ping($$$) {
 
 sub HELP_MESSAGE() {
     printf STDERR <<EOH, $0;
-./%s [-i interface] [-h host/addr]
+%s [-i interface] [-h host/addr]
 EOH
     exit 2;
 }
