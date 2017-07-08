@@ -9,6 +9,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
 #include <sys/socket.h>
 
 #define DEFAULT_ECHO_LEN 8
@@ -18,6 +19,7 @@
 static char *addr;
 static char *dev;
 static int verbose = 0;
+static int ifnet6 = 0;
 static int err;
 
 void help (const char *p) {
@@ -26,21 +28,38 @@ void help (const char *p) {
 }
 
 int send_ping (const char *data, int socket, struct sockaddr *saddr, const socklen_t addrlen) {
-    struct icmphdr icmp_h;
-    
+    void *icmp_h;
+
     // fill header with zeros and info
-    memset(&icmp_h, 0, sizeof(icmp_h));
-    icmp_h.type = ICMP_ECHO;
-    icmp_h.code = 0;
-    icmp_h.un.echo.id = 1337;
+    if (ifnet6) {
+        static struct icmp6_hdr icmp_h6;
+        memset(&icmp_h, 0, sizeof(icmp_h6));
+        icmp_h6.icmp6_type = ICMP6_ECHO_REQUEST;
+        icmp_h6.icmp6_code = 0;
+
+        icmp_h = (void *)&icmp_h6;
+    } else {
+        static struct icmphdr icmp_h4 ;
+        memset(&icmp_h, 0, sizeof(icmp_h4));
+        icmp_h4.type = ICMP_ECHO;
+        icmp_h4.code = 0;
+        icmp_h4.un.echo.id = 1337;
+
+        icmp_h = (void *)&icmp_h4;
+    }
+
     
     unsigned char hdr_data[BUF_LEN];
         
     // fill data
     memset(hdr_data, 0x90, BUF_LEN);
-    memcpy(hdr_data, &icmp_h, sizeof(icmp_h));
+    if (ifnet6) 
+        //memcpy(hdr_data, (struct icmp6_hdr *)icmp_h , sizeof((struct icmp6_hdr *)icmp_h));
+        memcpy(hdr_data, (struct icmp6_hdr *)icmp_h , sizeof(struct icmp6_hdr));
+    else
+        memcpy(hdr_data, (struct icmphdr *)icmp_h, sizeof((struct icmphdr *)icmp_h));
     
-    // send ICMP packets depending on data
+    // send icmp packets depending on data
     if ( (strcmp(data, "")) == 0 ) {
         if ( (sendto(socket, hdr_data, DEFAULT_ECHO_LEN, 0, saddr, addrlen)) < 0 )
             return errno;
@@ -63,6 +82,7 @@ int send_ping (const char *data, int socket, struct sockaddr *saddr, const sockl
 int main (int argc, char *argv[]) {
     struct hostent *host;
     struct sockaddr_in sin; 
+    struct sockaddr_in6 sin6; 
     int ret = EOK;
     int optc;
     int sock;
@@ -93,21 +113,42 @@ int main (int argc, char *argv[]) {
     if (verbose)
         printf("[i] dev:%s addr:%s\n", dev, addr);
 
+    // is ipv6 host
+    if ((strchr(addr, ':')) != NULL)
+        ifnet6++;
+
     // get host
-    if ( (host = gethostbyname(addr)) == NULL) {
-        fprintf(stderr, "[-] error getting host information.\n");
-        goto RET;
+    if (ifnet6) {
+        if ( (host = gethostbyname2(addr, AF_INET6)) == NULL) {
+            fprintf(stderr, "[-] error getting host information (ipv6).\n");
+            return(errno);
+        }
+    }else{
+        if ( (host = gethostbyname(addr)) == NULL) {
+            fprintf(stderr, "[-] error getting host information.\n");
+            return(errno);
+        }
     }
 
-    memset(&sin, 0, sizeof(sin));
-    sin.sin_family = AF_INET;
-    inet_pton(AF_INET, host->h_name, &sin.sin_addr);
+    if (ifnet6) {
+        memset(&sin6, 0, sizeof(sin6));
+        sin6.sin6_family = AF_INET6;
+        inet_pton(sin6.sin6_family, host->h_name, &sin6.sin6_addr);
+    } else {
+        memset(&sin, 0, sizeof(sin));
+        sin.sin_family = AF_INET ;
+        inet_pton(sin.sin_family, host->h_name, &sin.sin_addr);
+    }
 
     // socket creation
-    if ((sock = socket( sin.sin_family, SOCK_DGRAM, IPPROTO_ICMP)) == -1) {
+    if ((sock = socket(
+                    ( ifnet6 ? sin6.sin6_family : sin.sin_family ),
+                    SOCK_DGRAM,
+                    ( ifnet6 ? IPPROTO_ICMPV6 : IPPROTO_ICMP ) // use ipproto_ip for ipv6
+                    )) == -1) {
         ret = EACCES;
         perror("[-] error");
-        fprintf(stderr, "[i] Are you root?\n");
+        fprintf(stderr, "[i] are you root?\n");
         return(ret);
     }
     setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, dev, strlen(dev));
@@ -138,15 +179,28 @@ int main (int argc, char *argv[]) {
                 
                 if (verbose)
                     printf("[i] command: %s\n", buf);
-                if (send_ping(buf, sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
-                    perror("[-] error");
-                    ret = errno;
-                    goto RET;
-                }
-                if (send_ping("", sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
-                    perror("[-] error");
-                    ret = errno;
-                    goto RET;
+                if(ifnet6){
+                    if (send_ping(buf, sock, (struct sockaddr *)&sin6, sizeof(sin6)) < EOK) {
+                        perror("[-] error");
+                        ret = errno;
+                        goto RET;
+                    }
+                    if (send_ping("", sock, (struct sockaddr *)&sin6, sizeof(sin6)) < EOK) {
+                        perror("[-] error");
+                        ret = errno;
+                        goto RET;
+                    }
+                }else{
+                    if (send_ping(buf, sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
+                        perror("[-] error");
+                        ret = errno;
+                        goto RET;
+                    }
+                    if (send_ping("", sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
+                        perror("[-] error");
+                        ret = errno;
+                        goto RET;
+                    }
                 }
 
                 continue;
