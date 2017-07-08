@@ -104,7 +104,12 @@ int main (int argc, char *argv[]) {
     inet_pton(AF_INET, host->h_name, &sin.sin_addr);
 
     // socket creation
-    sock = socket( sin.sin_family, SOCK_DGRAM, IPPROTO_ICMP);
+    if ((sock = socket( sin.sin_family, SOCK_DGRAM, IPPROTO_ICMP)) == -1) {
+        ret = EACCES;
+        perror("[-] error");
+        fprintf(stderr, "[i] Are you root?\n");
+        return(ret);
+    }
     setsockopt(sock, SOL_SOCKET, SO_BINDTODEVICE, dev, strlen(dev));
 
     // enter main loop
@@ -134,12 +139,12 @@ int main (int argc, char *argv[]) {
                 if (verbose)
                     printf("[i] command: %s\n", buf);
                 if (send_ping(buf, sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
-                    perror("[-] error:");
+                    perror("[-] error");
                     ret = errno;
                     goto RET;
                 }
                 if (send_ping("", sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
-                    perror("[-] error:");
+                    perror("[-] error");
                     ret = errno;
                     goto RET;
                 }
