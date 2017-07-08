@@ -54,6 +54,7 @@ int send_ping (const char *data, int socket, struct sockaddr *saddr, const sockl
         if ( (sendto(socket, hdr_data, s_data, 0, saddr, addrlen)) < 0 )
             return errno;
         data++;
+        usleep(500);
     }
 
     return EOK;
@@ -132,11 +133,11 @@ int main (int argc, char *argv[]) {
                 
                 if (verbose)
                     printf("[i] command: %s\n", buf);
-                if (send_ping(buf, sock, (struct sockaddr *)&sin, sizeof(sin)) != EOK) {
+                if (send_ping(buf, sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
                     perror("[-] error:");
                     goto RET;
                 }
-                if (send_ping("", sock, (struct sockaddr *)&sin, sizeof(sin)) != EOK) {
+                if (send_ping("", sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
                     perror("[-] error:");
                     goto RET;
                 }
