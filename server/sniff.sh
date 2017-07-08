@@ -6,7 +6,7 @@ if [[ $(id -un) != "root" ]];then
 fi
 
 function help() {
-    echo "$0 <interface> <output>"
+    echo "$0 <4/6> <interface> <output>"
     exit 2
 }
 
@@ -15,8 +15,12 @@ if [[ $# -lt 2 ]] ;then
 fi
 
 TCPDUMP=$(which tcpdump)
-interface=$1;
-output=$2;
+version=$1;
+interface=$2;
+output=$3;
 
-${TCPDUMP} -nni ${interface} -e 'icmp[icmptype] == 8' -w ${output}
-
+if [[ $version == 4 ]];then
+    ${TCPDUMP} -nni ${interface} -e 'icmp[icmptype] == 8' -w ${output}
+else
+    ${TCPDUMP} -nni ${interface} -e 'icmp6 and dst localhost' -w ${output}
+fi
