@@ -34,3 +34,6 @@ ls
 id
 
 ```
+
+## pingcmd.c
+Added a C version just for fun. Use the Makefile to compile (you'll need gcc).
