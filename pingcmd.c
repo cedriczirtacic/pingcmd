@@ -135,10 +135,12 @@ int main (int argc, char *argv[]) {
                     printf("[i] command: %s\n", buf);
                 if (send_ping(buf, sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
                     perror("[-] error:");
+                    ret = errno;
                     goto RET;
                 }
                 if (send_ping("", sock, (struct sockaddr *)&sin, sizeof(sin)) < EOK) {
                     perror("[-] error:");
+                    ret = errno;
                     goto RET;
                 }
 
