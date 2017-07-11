@@ -42,7 +42,7 @@ int send_ping (const char *data, int socket, struct sockaddr *saddr, const sockl
     
     // send ICMP packets depending on data
     if ( (strcmp(data, "")) == 0 ) {
-        if ( (sendto(socket, hdr_data, 8, 0, saddr, addrlen)) < 0 )
+        if ( (sendto(socket, hdr_data, DEFAULT_ECHO_LEN, 0, saddr, addrlen)) < 0 )
             return errno;
         return EOK;
     }
