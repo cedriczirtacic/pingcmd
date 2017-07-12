@@ -54,7 +54,6 @@ int send_ping (const char *data, int socket, struct sockaddr *saddr, const sockl
     // fill data
     memset(hdr_data, 0x90, BUF_LEN);
     if (ifnet6) 
-        //memcpy(hdr_data, (struct icmp6_hdr *)icmp_h , sizeof((struct icmp6_hdr *)icmp_h));
         memcpy(hdr_data, (struct icmp6_hdr *)icmp_h , sizeof(struct icmp6_hdr));
     else
         memcpy(hdr_data, (struct icmphdr *)icmp_h, sizeof((struct icmphdr *)icmp_h));
