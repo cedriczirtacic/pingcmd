@@ -19,6 +19,8 @@ BEGIN {
 };
 
 require Net::Ping;
+my $icmpv = "icmp";
+my $ipv = "ipv4";
 
 sub gen_sizes($) {
     my $cmd = shift;
@@ -38,11 +40,13 @@ sub send_ping($$$) {
     return undef unless (defined $data
             or defined $host
             or defined $dev);
-
-    my $ping_t = Net::Ping->new("icmp");
+    my $ping_t = Net::Ping->new({
+                proto   => $icmpv,
+                family  => $ipv
+            });
     $ping_t->{device} = $dev;
     $ping_t->{data_size} = $data;
-    if (!$ping_t->ping($host)) {
+    if (!$ping_t->ping($host, 3 ,$ipv)) {
         print STDERR "-Error pinging $host with data.\n";
         return undef;
     }
@@ -68,6 +72,12 @@ if (!exists $opts{i} or !defined $opts{i}) {
 }
 if (!exists $opts{h} or !defined $opts{h}) {
     croak "Hostname/address must be specified.";
+}
+
+if ($opts{h} =~ /:/) {
+    printf STDERR "[i] Using IPv6 ICMP.\n";
+    $icmpv = "icmpv6";
+    $ipv = "ipv6";
 }
 
 goto PRINT_CMD;
