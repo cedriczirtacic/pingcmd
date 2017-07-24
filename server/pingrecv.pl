@@ -9,7 +9,7 @@ my($proto, $source, $cmd);
 croak("usage: $0 (icmp|icmp6) <source_ipv4>") if $#ARGV < 1;
 
 $proto = $ARGV[0] and $source = $ARGV[1];
-die("icmp6 not yet supported") if $proto eq "icmp6"; # TODO: add support for this.
+confess("icmp6 not yet supported") if $proto eq "icmp6"; # TODO: add support for this.
 
 # taken and modified from NetPacket::IP
 sub to_dotquad($) {
