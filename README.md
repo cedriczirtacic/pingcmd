@@ -39,3 +39,27 @@ id
 
 ## pingcmd.c
 Added a C version just for fun. Use the Makefile to compile (you'll need gcc).
+
+## server/pingrecv.pl
+This script will act as an icmp (blind) shell. All characters passed through icmp's data size build a command that on "null" size are executed.
+1. **Server-side:**
+```bash
+$ cd server/
+$ perl pingrecv.pl icmp 127.0.0.1
+```
+2. **Client-side:**
+```bash
+$ sudo ./pingcmd.pl -i lo -h 127.0.0.1
+(cmd)$ whoami > who.log
+(cmd)$ q
+$
+```
+3. **Server-side:**
+```bash
+$ sudo perl pingrecv.pl icmp 127.0.0.1
+^C
+$ file who.log
+who.log: ASCII text
+$ cat who.log
+root
+```
